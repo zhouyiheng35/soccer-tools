@@ -50,6 +50,10 @@ async def run_agent_until_done(agent, user_input, tools):
                     # 找到工具对象
                     tool = next(t for t in tools if t.name == name)
 
+                    for k, v in args.items():
+                        if v == "None":
+                            args[k] = None
+
                     # 执行工具
                     result = await tool.ainvoke(args)
                     print(f"[Tool Output] {result}")
@@ -105,9 +109,13 @@ async def main():
         )
     )
 
+    # question = "请告诉我阿森纳所属的联赛"
+    # question = "请告诉我阿森纳的所有比赛情况"
     # question = "请告诉我霍芬海姆所有在2023年10月28日的比赛情况"
-    # question = "请帮我把霍芬海姆在2023年8月19日的比赛比分进行更改，主队0球，客队8球"
-    question = "请帮我新增一场比赛：日期是2025年4月1日，时间是12：00，主队是利物浦，客队是阿森纳，比分是主队1，客队2"
+    # question = "请帮我把霍芬海姆2023年11月26日的比赛比分进行更改，主队2球，客队5球"
+    question = "请帮我新增一场比赛：日期是2025年4月1日，时间是12：00，主队是斯图加特，客队是法兰克福，比分是主队1，客队2"
+    # question = "请帮我新增一场比赛：日期是2025年4月1日，主队是斯图加特，客队是法兰克福，比分是主队1，客队2"
+    # question = "请帮我删除霍芬海姆的全部主场比赛"   有问题！！！！
 
     final_answer = await run_agent_until_done(agent, question, tools)
 

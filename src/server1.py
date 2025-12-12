@@ -91,7 +91,7 @@ async def load_team_matches(league: str, team: str) -> List[Dict[str, Any]]:
         team_en = team
 
     json_path = os.path.join(DATA_DIR, f"{league}.json")
-    with open(json_path, encoding="utf-8") as f:
+    with open(json_path, "r", encoding="utf-8") as f:
         matches = json.load(f)
 
     # 最终结果
@@ -102,15 +102,25 @@ async def load_team_matches(league: str, team: str) -> List[Dict[str, Any]]:
         home = m.get("HomeTeam")
         away = m.get("AwayTeam")
 
+        if home in TEAM_NAME_MAP:
+            home_norm = TEAM_NAME_MAP[home]
+        else:
+            home_norm = home
+
+        if away in TEAM_NAME_MAP:
+            away_norm = TEAM_NAME_MAP[away]
+        else:
+            away_norm = away
+
         # 如果匹配到队伍
-        if home == team_en or away == team_en:
+        if home_norm == team_en or away_norm == team_en:
             # 添加到返回结果中
             result.append({
                 "Div": m.get("Div"),
                 "Date": m.get("Date"),
                 "Time": m.get("Time"),
-                "HomeTeam": m.get("HomeTeam"),
-                "AwayTeam": m.get("AwayTeam"),
+                "HomeTeam": home_norm,
+                "AwayTeam": away_norm,
                 "FTHG": m.get("FTHG"),
                 "FTAG": m.get("FTAG"),
                 "FTR": m.get("FTR"),
@@ -133,6 +143,7 @@ async def load_team_matches(league: str, team: str) -> List[Dict[str, Any]]:
             })
 
     return result
+
 
 @mcp.tool()
 async def query_matches(
@@ -193,17 +204,27 @@ async def query_matches(
         date_m = m.get("Date")
         ftr = m.get("FTR")
 
+        if home in TEAM_NAME_MAP:
+            home_norm = TEAM_NAME_MAP[home]
+        else:
+            home_norm = home
+
+        if away in TEAM_NAME_MAP:
+            away_norm = TEAM_NAME_MAP[away]
+        else:
+            away_norm = away
+
         if date and date_m != date:
             continue
 
         if home_or_away:
-            if home_or_away.lower() == "home" and home != team_en:
+            if home_or_away.lower() == "home" and home_norm != team_en:
                 continue
-            if home_or_away.lower() == "away" and away != team_en:
+            if home_or_away.lower() == "away" and away_norm != team_en:
                 continue
 
         if result:
-            if home == team_en:
+            if home_norm == team_en:
                 team_is_home = True
             else:
                 team_is_home = False
@@ -235,6 +256,8 @@ async def add_match(
 ) -> str:
     """
     Add a new match.
+    When calling this tool, if any field(date, time, home, away) is missing, 
+    you must refuse and ask for clarification.
 
     Args:
         league(str): The league code(e.g., 'E0', 'D1', ...) which the team belongs to through 'detect_league' tool.
@@ -248,6 +271,7 @@ async def add_match(
     Returns:
         str: A string used to indicate whether the action was successful or failed.
     """
+    print(f"调用 add_match: {home} vs {away} 日期: {date} {time}")
     missing = []
     for field_name, field_value in {
         "date": date,
@@ -255,7 +279,7 @@ async def add_match(
         "home": home,
         "away": away,
     }.items():
-        if field_value is None:
+        if field_value is None or field_value.strip() == "":
             missing.append(field_name)
 
     if missing:
@@ -316,6 +340,16 @@ async def add_match(
 
     with open(json_path, "r", encoding="utf-8") as f:
         league_data = json.load(f)
+
+    # 检查是否已有相同比赛
+    exists = any(
+        m["Date"] == date and m["Time"] == time
+        and m["HomeTeam"] == home_norm and m["AwayTeam"] == away_norm
+        for m in league_data
+    )
+    if exists:
+        return "比赛已存在，未重复添加"
+    
     league_data.append(new_match)
 
     with open(json_path, "w", encoding="utf-8") as f:
@@ -472,136 +506,50 @@ async def change_score(
 #     }
 
 
-# @mcp.tool()
-# async def delete_matches(
-#     team: Optional[str] = None,
-#     date: Optional[str] = None,
-#     result: Optional[str] = None,
-#     opponent: Optional[str] = None,
-#     home_or_away: Optional[str] = None,
-# ) -> Dict[str, Any]:
-#     """
-#     Batch delete matches based on filter conditions.
+@mcp.tool()
+async def delete_matches(
+    matches: List[Dict[str, Any]],
+) -> str:
+    """
+    Delete matches.
+
+    Args:
+        matches(List[Dict[str, Any]]): A list of matches that should be deleted.
+
+    Return:
+        str: A string used to indicate whether the delete was successful or failed.
+    """
+
+    if len(matches) == 0:
+        return "删除失败，没找到比赛。"
     
-#     Filters:
-#     - team: target team (Chinese or English)
-#     - date: match date
-#     - result: 'win' | 'lose' | 'draw'
-#     - opponent: opponent team
-#     - home_or_away: 'home' | 'away'
+    league = matches[0].get("Div")
+    json_path = os.path.join(DATA_DIR, f"{league}.json")
+    with open(json_path, "r", encoding="utf-8") as f:
+        all_data = json.load(f)
 
-#     If user only tell you the home team and away team, call delete_one_match tool.
+    match_ids_to_delete = set()
+    for match in matches:
+        id = match.get("match_id")
+        match_ids_to_delete.add(str(id))
 
-#     Returns a report with:
-#     - deleted_count
-#     - deleted_matches
-#     - remaining_matches
-#     """
+    original_count = len(all_data)
+    filtered_data = []
+    deleted_count = 0
 
-#     if not team:
-#         return {"status": "error", "message": "必须指定 team 才能执行删除操作。"}
+    for match in all_data:
+        id = str(match.get("match_id", ""))
+        if id not in match_ids_to_delete:
+            filtered_data.append(match)
 
-#     team_en = TEAM_NAME_MAP.get(team, team)
+    deleted_count = original_count - len(filtered_data)
+    if deleted_count == 0:
+        return "删除失败，未在数据中找到指定比赛"
+    
+    with open(json_path, "w", encoding="utf-8") as f:
+            json.dump(filtered_data, f, ensure_ascii=False, indent=2)
 
-#     if team_en not in TEAM_NAME_MAP1:
-#         return {"status": "error", "message": f"未找到球队所属联赛：{team}"}
-
-#     league = TEAM_NAME_MAP1[team_en]
-#     json_path = os.path.join(DATA_DIR, f"{league}.json")
-
-#     try:
-#         with open(json_path, encoding="utf-8") as f:
-#             matches = json.load(f)
-#     except Exception as e:
-#         return {
-#             "status": "error",
-#             "message": f"读取联赛文件失败：{e}",
-#             "exception": str(e),
-#         }
-
-#     remaining = []
-#     deleted = []
-
-#     opp_en = None
-#     if opponent:
-#         opp_en = TEAM_NAME_MAP.get(opponent, opponent)
-
-#     for m in matches:
-#         home = m.get("HomeTeam")
-#         away = m.get("AwayTeam")
-
-#         match_team_related = (home == team_en or away == team_en)
-
-#         if not match_team_related:
-#             remaining.append(m)
-#             continue
-
-#         should_delete = True
-
-#         if date and m.get("Date") != date:
-#             should_delete = False
-
-#         if should_delete and home_or_away:
-#             if home_or_away.lower() == "home" and home != team_en:
-#                 should_delete = False
-#             if home_or_away.lower() == "away" and away != team_en:
-#                 should_delete = False
-
-#         if should_delete and opp_en:
-#             if home == team_en and away != opp_en:
-#                 should_delete = False
-#             if away == team_en and home != opp_en:
-#                 should_delete = False
-
-#         if should_delete and result:
-#             ftr = m.get("FTR")
-#             team_is_home = (home == team_en)
-
-#             if result == "win":
-#                 if (team_is_home and ftr != "H") or (not team_is_home and ftr != "A"):
-#                     should_delete = False
-#             elif result == "lose":
-#                 if (team_is_home and ftr != "A") or (not team_is_home and ftr != "H"):
-#                     should_delete = False
-#             elif result == "draw":
-#                 if ftr != "D":
-#                     should_delete = False
-
-#         if should_delete:
-#             deleted.append(m)
-#         else:
-#             remaining.append(m)
-
-#     if not deleted:
-#         return {
-#             "status": "ok",
-#             "deleted_count": 0,
-#             "message": "没有任何匹配的比赛被删除。",
-#             "filters": {
-#                 "team": team,
-#                 "date": date,
-#                 "result": result,
-#                 "opponent": opponent,
-#                 "home_or_away": home_or_away,
-#             }
-#         }
-
-#     try:
-#         save_league(league, remaining)
-#     except Exception as e:
-#         return {
-#             "status": "error",
-#             "message": f"写回文件失败：{e}",
-#             "exception": str(e),
-#         }
-
-#     return {
-#         "status": "ok",
-#         "message": f"成功删除 {len(deleted)} 场比赛",
-#         "deleted_count": len(deleted),
-#         "deleted_matches": deleted,
-#         "remaining_matches": len(remaining),
-#     }
+    return f"删除成功！删除了 {deleted_count}/{original_count} 场比赛。"
 
 
 if __name__ == "__main__":
