@@ -223,142 +223,105 @@ async def query_matches(
     return filtered
 
 
-# @mcp.tool()
-# async def add_match(
-#     date: Optional[str] = None,
-#     time: Optional[str] = None,
-#     home: Optional[str] = None,
-#     away: Optional[str] = None,
-#     home_score: int = 0,
-#     away_score: int = 0,
-# ) -> Dict[str, Any]:
-#     """
-#     Add a new match to a league JSON file.
+@mcp.tool()
+async def add_match(
+    league: str,
+    date: str,
+    time: str,
+    home: str,
+    away: str,
+    home_score: int = 0,
+    away_score: int = 0,
+) -> str:
+    """
+    Add a new match.
 
-#     Required parameters:
-#       - date: YYYY-MM-DD
-#       - time: HH:MM
-#       - home: home team (Chinese or English)
-#       - away: away team (Chinese or English)
-#       - home_score: optional
-#       - away_score: optional
+    Args:
+        league(str): The league code(e.g., 'E0', 'D1', ...) which the team belongs to through 'detect_league' tool.
+        date(str): The date of the new match.
+        time(str): The time of the new match.
+        home(str): The home team's name of the new match.
+        away(str): The away team's name of the new match.
+        home_score(int): Goals scored by the home team after the change.
+        away_score(int): Goals scored by the away team after the change.
 
-#     If user want to add a match, you needn't to call the update_score tool.
+    Returns:
+        str: A string used to indicate whether the action was successful or failed.
+    """
+    missing = []
+    for field_name, field_value in {
+        "date": date,
+        "time": time,
+        "home": home,
+        "away": away,
+    }.items():
+        if field_value is None:
+            missing.append(field_name)
 
-#     Returns:
-#       - {"status": "ok", "match": {...}}
-#       - {"status": "error", "message": "..."}
-#     """
-
-#     missing = []
-#     for field_name, field_value in {
-#         "date": date,
-#         "time": time,
-#         "home": home,
-#         "away": away,
-#     }.items():
-#         if field_value is None:
-#             missing.append(field_name)
-
-#     if missing:
-#         return {
-#             "status": "error",
-#             "message": f"缺少必要字段：{', '.join(missing)}。请补全后重试。",
-#             "missing": missing,
-#         }
-
-#     home_norm = TEAM_NAME_MAP.get(home, home)
-#     away_norm = TEAM_NAME_MAP.get(away, away)
+    if missing:
+        return f"缺少必要字段：{', '.join(missing)}。请补全后重试。"
     
-#     league_code = TEAM_NAME_MAP1.get(home_norm)
-#     league_code2 = TEAM_NAME_MAP1.get(away_norm)
+    if home in TEAM_NAME_MAP:
+        home_norm = TEAM_NAME_MAP[home]
+    else:
+        home_norm = home
 
-#     if league_code != league_code2:
-#         return {
-#             "status": "error",
-#             "message": f"主队（{home_norm}）与客队（{away_norm}）不属于同一联赛，无法创建比赛。",
-#         }
+    if away in TEAM_NAME_MAP:
+        away_norm = TEAM_NAME_MAP[away]
+    else:
+        away_norm = away
 
-#     json_path = os.path.join(DATA_DIR, f"{league_code}.json")
-#     if not os.path.exists(json_path):
-#         return {
-#             "status": "error",
-#             "message": f"未找到联赛：{league_code}。",
-#         }
+    json_path = os.path.join(DATA_DIR, f"{league}.json")
 
-#     fthg = int(home_score or 0)
-#     ftag = int(away_score or 0)
+    fthg = int(home_score or 0)
+    ftag = int(away_score or 0)
 
-#     if fthg > ftag:
-#         ftr = "H"
-#     elif fthg == ftag:
-#         ftr = "D"
-#     else:
-#         ftr = "A"
+    if fthg > ftag:
+        ftr = "H"
+    elif fthg == ftag:
+        ftr = "D"
+    else:
+        ftr = "A"
 
-#     new_match = {
-#         "Div": league_code,
-#         "Date": date,
-#         "Time": time,
-#         "HomeTeam": home_norm,
-#         "AwayTeam": away_norm,
+    new_match = {
+        "Div": league,
+        "Date": date,
+        "Time": time,
+        "HomeTeam": home_norm,
+        "AwayTeam": away_norm,
 
-#         "FTHG": fthg,
-#         "FTAG": ftag,
-#         "FTR": ftr,
+        "FTHG": fthg,
+        "FTAG": ftag,
+        "FTR": ftr,
 
-#         "HTHG": 0,
-#         "HTAG": 0,
-#         "HTR": "",
+        "HTHG": 0,
+        "HTAG": 0,
+        "HTR": "",
 
-#         "HS": 0,
-#         "AS": 0,
-#         "HST": 0,
-#         "AST": 0,
-#         "HF": 0,
-#         "AF": 0,
-#         "HC": 0,
-#         "AC": 0,
-#         "HY": 0,
-#         "AY": 0,
-#         "HR": 0,
-#         "AR": 0,
+        "HS": 0,
+        "AS": 0,
+        "HST": 0,
+        "AST": 0,
+        "HF": 0,
+        "AF": 0,
+        "HC": 0,
+        "AC": 0,
+        "HY": 0,
+        "AY": 0,
+        "HR": 0,
+        "AR": 0,
 
-#         "match_id": str(uuid.uuid4()),
-#     }
+        "match_id": str(uuid.uuid4()),
+    }
 
-#     try:
-#         league_data = load_league(league_code)
-#     except Exception as e:
-#         return {
-#             "status": "error",
-#             "message": f"加载联赛文件失败：{e}",
-#             "exception": str(e)
-#         }
+    with open(json_path, "r", encoding="utf-8") as f:
+        league_data = json.load(f)
+    league_data.append(new_match)
 
-#     if not isinstance(league_data, list):
-#         return {
-#             "status": "error",
-#             "message": f"{league_code}.json 格式错误，必须是 list。",
-#         }
-    
-#     league_data.append(new_match)
+    with open(json_path, "w", encoding="utf-8") as f:
+            json.dump(league_data, f, ensure_ascii=False, indent=2)
 
-#     try:
-#         save_league(league_code, league_data)
-#     except Exception as e:
-#         league_data.pop()
-#         return {
-#             "status": "error",
-#             "message": f"保存文件失败：{e}",
-#             "exception": str(e),
-#         }
-
-#     return {
-#         "status": "ok",
-#         "message": f"比赛已成功加入 {league_code}",
-#         "match": new_match,
-#     }
+    return "添加比赛成功"
 
 
 @mcp.tool()
