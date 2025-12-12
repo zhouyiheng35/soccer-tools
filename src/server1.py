@@ -511,7 +511,7 @@ async def delete_matches(
     matches: List[Dict[str, Any]],
 ) -> str:
     """
-    Delete matches.
+    Delete all the matches in the given arg.
 
     Args:
         matches(List[Dict[str, Any]]): A list of matches that should be deleted.

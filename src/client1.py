@@ -25,8 +25,6 @@ async def run_agent_until_done(agent, user_input, tools):
         # 找到模型最新输出的消息（必须对比长度）
         llm_messages = new_messages[len(messages):]
 
-        
-
         for msg in llm_messages:
             if isinstance(msg, AIMessage):
                 print(f"[LLM] {msg.content}")
@@ -113,9 +111,9 @@ async def main():
     # question = "请告诉我阿森纳的所有比赛情况"
     # question = "请告诉我霍芬海姆所有在2023年10月28日的比赛情况"
     # question = "请帮我把霍芬海姆2023年11月26日的比赛比分进行更改，主队2球，客队5球"
-    question = "请帮我新增一场比赛：日期是2025年4月1日，时间是12：00，主队是斯图加特，客队是法兰克福，比分是主队1，客队2"
+    # question = "请帮我新增一场比赛：日期是2025年4月1日，时间是12：00，主队是斯图加特，客队是法兰克福，比分是主队1，客队2"
     # question = "请帮我新增一场比赛：日期是2025年4月1日，主队是斯图加特，客队是法兰克福，比分是主队1，客队2"
-    # question = "请帮我删除霍芬海姆的全部主场比赛"   有问题！！！！
+    question = "请帮我删除科隆的全部客场比赛"
 
     final_answer = await run_agent_until_done(agent, question, tools)
 
