@@ -5,6 +5,7 @@ from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain.agents import create_agent
 from langchain_openai import ChatOpenAI
 from dotenv import load_dotenv
+from common.utils.Ch2En import TEAM_NAME_MAP
 
 from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
@@ -37,6 +38,12 @@ async def run_agent_until_done(agent, user_input, tools):
                     name = call["name"]
                     args = call.get("args") or call.get("arguments")
                     tool_call_id = call["id"]
+
+                    if "team" in args:
+                        chinese_name = args["team"]
+                        if chinese_name in TEAM_NAME_MAP:
+                            english_name = TEAM_NAME_MAP[chinese_name]
+                            args["team"] = english_name
 
                     print(f"[Tool Call] name={name}, args={args}")
 
@@ -98,7 +105,8 @@ async def main():
         )
     )
 
-    question = "请告诉我霍芬海姆的所有客场比赛情况"
+    # question = "请告诉我霍芬海姆所有在2023年10月28日的比赛情况"
+    question = "请帮我把霍芬海姆在2023年8月19日的比赛比分进行更改，主队0球，客队8球"
 
     final_answer = await run_agent_until_done(agent, question, tools)
 

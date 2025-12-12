@@ -146,7 +146,7 @@ async def query_matches(
     Filter matches that meet the criteria according to the specified rules.
 
     Args:
-        matches(List[Dict[str, Any]]): The league code(e.g., 'E0', 'D1', ...) which the team belongs to through 'detect_league' tool.
+        matches(List[Dict[str, Any]]): A list of potential matches.
         team(str): The name of team.
         date(str): The date of match.
         result(str): The result of the team. It shouble be transformed to 'win', 'draw' or 'lose'.
@@ -361,114 +361,56 @@ async def query_matches(
 #     }
 
 
-# @mcp.tool()
-# async def update_score(
-#     home: str | None = None,
-#     away: str | None = None,
-#     home_score: int | None = None,
-#     away_score: int | None = None,
-# ):
-#     """
-#     Update a match's full time score to a league JSON file.
+@mcp.tool()
+async def change_score(
+    match: List[Dict[str, Any]],
+    home_score: int,
+    away_score: int,
+) -> str:
+    """
+    Change a match's full time score and result.
 
-#     Required parameters:
-#       - home: home team (Chinese or English)
-#       - away: away team (Chinese or English)
-#       - home_score: updated home team full time score
-#       - away_score: updated away team full time score
+    Args:
+        matches(List[Dict[str, Any]]): A list of potential matches.
+        home_score(int): Goals scored by the home team after the change.
+        away_score(int): Goals scored by the away team after the change.
 
-#     Returns:
-#       - {"status": "ok", "message": {...}}
-#       - {"status": "error", "message": "..."}
-#     """
-#     missing = []
-#     for field_name, field_value in {
-#         "home": home,
-#         "away": away,
-#         "home_score": home_score,
-#         "away_score": away_score,
-#     }.items():
-#         if field_value is None:
-#             missing.append(field_name)
-
-#     if missing:
-#         return {
-#             "status": "error",
-#             "message": f"缺少必要字段：{', '.join(missing)}。请补全后重试。",
-#             "missing": missing,
-#         }
-
-#     home_norm = TEAM_NAME_MAP.get(home, home)
-#     away_norm = TEAM_NAME_MAP.get(away, away)
+    Returns:
+        str: A string used to indicate whether the change was successful or failed.
+    """
+    if len(match) == 0:
+        return "更改失败，没找到比赛。"
     
-#     league_code = TEAM_NAME_MAP1.get(home_norm)
-
-#     if not league_code:
-#         return {
-#             "status": "error",
-#             "message": f"无法根据主队 '{home}' 推断所属联赛，请确认队名是否正确。",
-#         }
-
-#     json_path = os.path.join(DATA_DIR, f"{league_code}.json")
-#     if not os.path.exists(json_path):
-#         return {
-#             "status": "error",
-#             "message": f"未找到联赛：{league_code}。",
-#         }
-
-#     try:
-#         league_data = load_league(league_code)
-#     except Exception as e:
-#         return {
-#             "status": "error",
-#             "message": f"加载联赛文件失败：{e}",
-#             "exception": str(e)
-#         }
-
-#     if not isinstance(league_data, list):
-#         return {
-#             "status": "error",
-#             "message": f"{league_code}.json 格式错误，必须是 list。",
-#         }
+    m = match[0]
     
-#     match_found = None
-#     for match in league_data:
-#         if match.get("HomeTeam") == home_norm and match.get("AwayTeam") == away_norm:
-#             match_found = match
-#             break
+    fthg = home_score
+    ftag = away_score
+
+    m["FTHG"] = fthg
+    m["FTAG"] = ftag
+
+    m["FTR"] = (
+        "H" if fthg > ftag else
+        "A" if fthg < ftag else
+        "D"
+    )
+
+    league = m.get("Div")
+    id = m.get("match_id")
+
+    path = os.path.join(DATA_DIR, f"{league}.json")
+    with open(path, "r", encoding="utf-8") as f:
+        all_data = json.load(f)
+
+    for i, mm in enumerate(all_data):
+        if mm.get("match_id") == id:
+            all_data[i] = m
+            break
+
+    with open(path, "w", encoding="utf-8") as f:
+            json.dump(all_data, f, ensure_ascii=False, indent=2)
     
-#     if not match_found:
-#         return {
-#             "status": "error",
-#             "message": f"未找到比赛：{home_norm} vs {away_norm}",
-#         }
-    
-#     fthg = home_score
-#     ftag = away_score
-
-#     match_found["FTHG"] = fthg
-#     match_found["FTAG"] = ftag
-
-#     match_found["FTR"] = (
-#         "H" if fthg > ftag else
-#         "A" if fthg < ftag else
-#         "D"
-#     )
-
-#     try:
-#         save_league(league_code, league_data)
-#     except Exception as e:
-#         return {
-#             "status": "error",
-#             "message": f"保存文件失败：{e}",
-#         }
-
-#     return {
-#         "status": "ok",
-#         "message": "比赛已成功更新",
-#         "league": league_code,
-#         "updated_match": match_found,
-#     }
+    return "比分更新成功"
 
 
 # @mcp.tool()
