@@ -4,8 +4,9 @@ import uuid
 import pandas as pd
 from datetime import datetime
 
-INPUT_DIR = r"/home/zhouyiheng/langchain_mcp/data"
-OUTPUT_DIR = r"/home/zhouyiheng/langchain_mcp/data"
+PROJECT_ROOT = os.getenv("PROJECT_ROOT")
+INPUT_DIR = os.path.join(PROJECT_ROOT, "data")
+OUTPUT_DIR = os.path.join(PROJECT_ROOT, "test_data")
 os.makedirs(OUTPUT_DIR, exist_ok=True)
 
 ODDS_COLUMNS = {
@@ -19,11 +20,10 @@ ODDS_COLUMNS = {
     "Bb1X2", "BbMxH", "BbAvH", "BbMxD", "BbAvD", "BbMxA", "BbAvA",
     "BbOU", "BbMx>2.5", "BbAv>2.5", "BbMx<2.5", "BbAv<2.5",
     "GBH", "GBD", "GBA",
-    "SBH", "SBD", "SBA"
+    "SBH", "SBD", "SBA", "Referee"
 }
 
 def convert_date_format(date_str):
-    """把 dd/mm/yyyy 转成 yyyy-mm-dd"""
     try:
         return datetime.strptime(date_str, "%d/%m/%Y").strftime("%Y-%m-%d")
     except:

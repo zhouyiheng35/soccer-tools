@@ -113,7 +113,7 @@ async def main():
     # question = "请帮我把霍芬海姆2023年11月26日的比赛比分进行更改，主队2球，客队5球"
     # question = "请帮我新增一场比赛：日期是2025年4月1日，时间是12：00，主队是斯图加特，客队是法兰克福，比分是主队1，客队2"
     # question = "请帮我新增一场比赛：日期是2025年4月1日，主队是斯图加特，客队是法兰克福，比分是主队1，客队2"
-    question = "请帮我删除科隆的全部客场比赛"
+    question = "请帮我找到科隆的全部客场比赛并删除"
 
     final_answer = await run_agent_until_done(agent, question, tools)
 
