@@ -4,10 +4,9 @@ import json
 from langchain_mcp_adapters.client import MultiServerMCPClient
 from langchain.agents import create_agent
 from langchain_openai import ChatOpenAI
+from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 from dotenv import load_dotenv
 from common.utils.Ch2En import TEAM_NAME_MAP
-
-from langchain_core.messages import AIMessage, HumanMessage, ToolMessage
 
 load_dotenv()
 
@@ -108,12 +107,12 @@ async def main():
     )
 
     # question = "请告诉我阿森纳所属的联赛"
-    # question = "请告诉我阿森纳的所有比赛情况"
+    question = "请告诉我科隆的所有比赛情况"
     # question = "请告诉我霍芬海姆所有在2023年10月28日的比赛情况"
     # question = "请帮我把霍芬海姆2023年11月26日的比赛比分进行更改，主队2球，客队5球"
     # question = "请帮我新增一场比赛：日期是2025年4月1日，时间是12：00，主队是斯图加特，客队是法兰克福，比分是主队1，客队2"
     # question = "请帮我新增一场比赛：日期是2025年4月1日，主队是斯图加特，客队是法兰克福，比分是主队1，客队2"
-    question = "请帮我找到科隆的全部客场比赛并删除"
+    # question = "请帮我找到科隆的全部客场比赛并删除"
 
     final_answer = await run_agent_until_done(agent, question, tools)
 
