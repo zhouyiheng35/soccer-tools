@@ -6,25 +6,9 @@ from typing import List, Dict, Any, Optional
 from common.utils.En2Le import TEAM_NAME_MAP1
 from common.utils.Ch2En import TEAM_NAME_MAP, LEAGUE_NAME_MAP
 
-DATA_DIR = "test_data"
+DATA_DIR = os.environ.get("DATA_DIR", "./test_data")
 mcp = FastMCP("Soccer")
-
-def save_league(league: str, data: list):
-    """Wirte back the JSON file."""
-    path = os.path.join(DATA_DIR, f"{league}.json")
-    with open(path, "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-
-
-def load_league(league: str) -> list:
-    """Load the JSON file."""
-    path = os.path.join(DATA_DIR, f"{league}.json")
-    if not os.path.exists(path):
-        raise Exception(f"联赛 {league} 不存在（{path} 文件找不到）")
-    with open(path, encoding="utf-8") as f:
-        return json.load(f)
-    
-
+  
 @mcp.tool()
 async def detect_league(team: str) -> str:
     """
@@ -42,7 +26,6 @@ async def detect_league(team: str) -> str:
         team_en = team
 
     league = TEAM_NAME_MAP1[team_en]
-    print("DEBUG league:", league)
     return league
 
 
@@ -410,102 +393,6 @@ async def change_score(
     return "比分更新成功"
 
 
-# @mcp.tool()
-# async def delete_one_match(
-#     home: str | None = None,
-#     away: str | None = None,
-# ):
-#     """
-#     Delete an existing match from its league JSON file.
-
-#     Required parameters:
-#       - home: home team (Chinese or English)
-#       - away: away team (Chinese or English)
-
-#     If user only tell you the home team and away team, call this tool.
-
-#     Returns:
-#       - {"status": "ok", "message": {...}}
-#       - {"status": "error", "message": "..."}
-#     """
-#     missing = []
-#     for field_name, field_value in {
-#         "home": home,
-#         "away": away,
-#     }.items():
-#         if field_value is None:
-#             missing.append(field_name)
-
-#     if missing:
-#         return {
-#             "status": "error",
-#             "message": f"缺少必要字段：{', '.join(missing)}。请补全后重试。",
-#             "missing": missing,
-#         }
-
-#     home_norm = TEAM_NAME_MAP.get(home, home)
-#     away_norm = TEAM_NAME_MAP.get(away, away)
-
-#     league_code = TEAM_NAME_MAP1.get(home_norm)
-
-#     if not league_code:
-#         return {
-#             "status": "error",
-#             "message": f"无法根据主队 '{home}' 推断所属联赛，请确认队名是否正确。",
-#         }
-
-#     json_path = os.path.join(DATA_DIR, f"{league_code}.json")
-#     if not os.path.exists(json_path):
-#         return {
-#             "status": "error",
-#             "message": f"未找到联赛：{league_code}。",
-#         }
-    
-#     try:
-#         league_data = load_league(league_code)
-#     except Exception as e:
-#         return {
-#             "status": "error",
-#             "message": f"加载联赛文件失败：{e}",
-#             "exception": str(e)
-#         }
-
-#     if not isinstance(league_data, list):
-#         return {
-#             "status": "error",
-#             "message": f"{league_code}.json 格式错误，必须是 list。",
-#         }
-    
-#     before = len(league_data)
-#     league_data = [
-#         m for m in league_data
-#         if not (m["HomeTeam"] == home_norm and 
-#                 m["AwayTeam"] == away_norm)
-#     ]
-
-#     if len(league_data) == before:
-#         return {
-#             "status": "error",
-#             "message": f"比赛不存在，无法删除",
-#             "league": league_code,
-#         }
-
-#     try:
-#         save_league(league_code, league_data)
-#     except Exception as e:
-#         return {
-#             "status": "error",
-#             "message": f"保存文件失败：{e}",
-#             "exception": str(e),
-#         }
-
-#     return {
-#         "status": "ok",
-#         "message": f"比赛已成功删除",
-#         "league": league_code,
-#     }
-
-
 @mcp.tool()
 async def delete_matches(
     matches: List[Dict[str, Any]],
@@ -551,6 +438,9 @@ async def delete_matches(
 
     return f"删除成功！删除了 {deleted_count}/{original_count} 场比赛。"
 
-
 if __name__ == "__main__":
-    mcp.run(transport="streamable-http")
+    mcp.run(
+    transport="streamable-http",
+    host="0.0.0.0",
+    port=int(os.environ.get("PORT", 8000))
+)
