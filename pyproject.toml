@@ -7,6 +7,7 @@ requires-python = ">=3.10"
 dependencies = [
     "alibabacloud-darabonba-stream>=0.0.2",
     "alibabacloud-fc20230330==4.6.6",
+    "alibabacloud-oss-v2>=1.2.2",
     "aliyun-fc2>=2.5.2",
     "aliyun-python-sdk-core>=2.16.0",
     "fastmcp>=2.13.2",
