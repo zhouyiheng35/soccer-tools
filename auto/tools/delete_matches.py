@@ -1,22 +1,4 @@
-import os
-import json
 from fc_decorator import fc
-import alibabacloud_oss_v2 as oss
-
-OSS_REGION = os.environ.get("OSS_REGION", "cn-beijing")
-OSS_ENDPOINT = os.environ.get("OSS_ENDPOINT")
-DATA_BUCKET = os.environ.get("DATA_BUCKET", "soccer-data")
-
-def create_oss_client():
-    credentials_provider = oss.credentials.EnvironmentVariableCredentialsProvider()
-    cfg = oss.config.load_default()
-    cfg.credentials_provider = credentials_provider
-    cfg.region = OSS_REGION
-    if OSS_ENDPOINT:
-        cfg.endpoint = OSS_ENDPOINT if OSS_ENDPOINT.startswith("http") else f"https://{OSS_ENDPOINT}"
-    return oss.Client(cfg)
-
-client = create_oss_client()
 
 @fc
 def delete_matches(
@@ -29,15 +11,8 @@ def delete_matches(
     if not league:
         return "删除失败，比赛数据中缺少 Div"
 
-    object_key = f"leagues/{league}.json"
     try:
-        resp = client.get_object(
-            oss.GetObjectRequest(
-                bucket=DATA_BUCKET,
-                key=object_key
-            )
-        )
-        all_data = json.loads(resp.body.read().decode("utf-8"))
+        all_data = storage.load_league(league)
     except Exception as e:
         return f"读取联赛数据失败: {e}"
 
@@ -63,13 +38,7 @@ def delete_matches(
         return "删除失败，未在数据中找到指定比赛"
 
     try:
-        client.put_object(
-            oss.PutObjectRequest(
-                bucket=DATA_BUCKET,
-                key=object_key,
-                body=json.dumps(filtered_data, ensure_ascii=False, indent=2).encode("utf-8")
-            )
-        )
+        storage.save_league(league, filtered_data)
     except Exception as e:
         return f"写回 OSS 失败: {e}"
 

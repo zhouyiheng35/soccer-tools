@@ -1,7 +1,8 @@
 import json
 import inspect
-import alibabacloud_oss_v2 as oss
 import textwrap
+
+import alibabacloud_oss_v2 as oss
 
 def strip_decorators(func):
     src = inspect.getsource(func)
@@ -14,7 +15,6 @@ def fc(func):
     def wrapper(*args, **kwargs):
         return func(*args, **kwargs)
 
-    # ===== 1. 提取函数信息 =====
     source_code = strip_decorators(func)
     tool_def = {
         "name": func.__name__,
@@ -24,13 +24,11 @@ def fc(func):
         "runtime": "python3.10"
     }
 
-    # ===== 2. 初始化 OSS 客户端 =====
     cfg = oss.config.load_default()
     cfg.region = "cn-beijing"
     cfg.credentials_provider = oss.credentials.EnvironmentVariableCredentialsProvider()
     client = oss.Client(cfg)
 
-    # ===== 3. 上传到 OSS =====
     client.put_object(
         oss.PutObjectRequest(
             bucket="soccer-tools",

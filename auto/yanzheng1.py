@@ -1,3 +1,3 @@
-import tools.delete_matches
+import tools.load_team_matches
 
 print("sd")

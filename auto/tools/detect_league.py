@@ -1,6 +1,4 @@
 from fc_decorator import fc
-from common.utils.En2Le import TEAM_NAME_MAP1
-from common.utils.Ch2En import TEAM_NAME_MAP
 
 @fc
 def detect_league(team: str) -> str:
