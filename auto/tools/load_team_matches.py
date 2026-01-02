@@ -2,12 +2,12 @@ import os
 import json
 from fc_decorator import fc
 import alibabacloud_oss_v2 as oss
-from common.utils.Ch2En import TEAM_NAME_MAP
+# from common.utils.Ch2En import TEAM_NAME_MAP
 
 # ================= OSS 配置 =================
 OSS_REGION = os.environ.get("OSS_REGION", "cn-beijing")
 OSS_ENDPOINT = os.environ.get("OSS_ENDPOINT")
-OSS_BUCKET = os.environ.get("OSS_BUCKET", "soccer-data")
+DATA_BUCKET = os.environ.get("DATA_BUCKET", "soccer-data")
 
 def create_oss_client():
     credentials_provider = oss.credentials.EnvironmentVariableCredentialsProvider()
@@ -25,7 +25,7 @@ def load_team_matches(league: str, team: str) -> list[dict]:
     team_en = TEAM_NAME_MAP.get(team, team)
     object_key = f"leagues/{league}.json"
 
-    response = client.get_object(oss.GetObjectRequest(bucket=OSS_BUCKET, key=object_key))
+    response = client.get_object(oss.GetObjectRequest(bucket=DATA_BUCKET, key=object_key))
     with response.body as stream:
         body_bytes = stream.read()
     matches = json.loads(body_bytes.decode("utf-8"))

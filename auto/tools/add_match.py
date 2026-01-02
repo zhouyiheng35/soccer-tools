@@ -8,8 +8,7 @@ from common.utils.Ch2En import TEAM_NAME_MAP
 
 OSS_REGION = os.environ.get("OSS_REGION", "cn-beijing")
 OSS_ENDPOINT = os.environ.get("OSS_ENDPOINT")
-OSS_BUCKET = os.environ.get("OSS_BUCKET", "soccer-data")
-OSS_PREFIX = os.environ.get("OSS_PREFIX", "leagues")
+DATA_BUCKET = os.environ.get("DATA_BUCKET", "soccer-data")
 
 def create_oss_client():
     credentials_provider = oss.credentials.EnvironmentVariableCredentialsProvider()
@@ -85,12 +84,12 @@ def add_match(
         "match_id": str(uuid.uuid4()),
     }
 
-    object_key = f"{OSS_PREFIX}/{league}.json"
+    object_key = f"leagues/{league}.json"
 
     try:
         resp = client.get_object(
             oss.GetObjectRequest(
-                bucket=OSS_BUCKET,
+                bucket=DATA_BUCKET,
                 key=object_key
             )
         )
@@ -111,7 +110,7 @@ def add_match(
     try:
         client.put_object(
             oss.PutObjectRequest(
-                bucket=OSS_BUCKET,
+                bucket=DATA_BUCKET,
                 key=object_key,
                 body=json.dumps(all_data, ensure_ascii=False, indent=2).encode("utf-8")
             )

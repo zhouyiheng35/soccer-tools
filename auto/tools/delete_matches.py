@@ -19,35 +19,17 @@ def create_oss_client():
 client = create_oss_client()
 
 @fc
-def change_score(
-    match: list[dict],
-    home_score: int,
-    away_score: int,
+def delete_matches(
+    matches: list[dict],
 ) -> str:
-    if not match or len(match) == 0:
-        return "更改失败，没找到比赛。"
+    if not matches or len(matches) == 0:
+        return "删除失败，没找到比赛。"
 
-    m = match[0]
-
-    fthg = int(home_score)
-    ftag = int(away_score)
-
-    m["FTHG"] = fthg
-    m["FTAG"] = ftag
-    m["FTR"] = (
-        "H" if fthg > ftag else
-        "A" if fthg < ftag else
-        "D"
-    )
-
-    league = m.get("Div")
-    match_id = m.get("match_id")
-
-    if not league or not match_id:
-        return "比赛数据不完整，缺少 Div 或 match_id"
+    league = matches[0].get("Div")
+    if not league:
+        return "删除失败，比赛数据中缺少 Div"
 
     object_key = f"leagues/{league}.json"
-
     try:
         resp = client.get_object(
             oss.GetObjectRequest(
@@ -59,25 +41,36 @@ def change_score(
     except Exception as e:
         return f"读取联赛数据失败: {e}"
 
-    updated = False
-    for i, mm in enumerate(all_data):
-        if str(mm.get("match_id")) == str(match_id):
-            all_data[i] = m
-            updated = True
-            break
+    match_ids_to_delete = {
+        str(m.get("match_id"))
+        for m in matches
+        if m.get("match_id") is not None
+    }
 
-    if not updated:
-        return "更改失败，未在联赛数据中找到对应比赛"
+    if not match_ids_to_delete:
+        return "删除失败，未提供有效的 match_id"
+
+    original_count = len(all_data)
+
+    filtered_data = [
+        m for m in all_data
+        if str(m.get("match_id")) not in match_ids_to_delete
+    ]
+
+    deleted_count = original_count - len(filtered_data)
+
+    if deleted_count == 0:
+        return "删除失败，未在数据中找到指定比赛"
 
     try:
         client.put_object(
             oss.PutObjectRequest(
                 bucket=DATA_BUCKET,
                 key=object_key,
-                body=json.dumps(all_data, ensure_ascii=False, indent=2).encode("utf-8")
+                body=json.dumps(filtered_data, ensure_ascii=False, indent=2).encode("utf-8")
             )
         )
     except Exception as e:
         return f"写回 OSS 失败: {e}"
 
-    return "比分更新成功"
+    return f"删除成功！删除了 {deleted_count}/{original_count} 场比赛。"
